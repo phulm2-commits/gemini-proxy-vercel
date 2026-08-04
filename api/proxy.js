@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-  // 1. Cho phép CORS để Power Automate gọi thoải mái
+  // 1. CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', '*');
@@ -8,15 +8,15 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // 2. Lấy đường dẫn & query string từ request
-  const { pathname, search } = new URL(req.url, `https://${req.headers.host}`);
-  const targetUrl = `https://generativelanguage.googleapis.com${pathname}${search}`;
-
   try {
-    // 3. Đọc body gửi từ Power Automate
-    const bodyData = req.body ? JSON.stringify(req.body) : null;
+    // 2. Cắt bỏ tiền tố /api/proxy để giữ lại đoạn v1beta/models/...
+    const cleanPath = req.url.replace(/^\/api\/proxy/, '');
+    const targetUrl = `https://generativelanguage.googleapis.com${cleanPath}`;
 
-    // 4. Gọi sang Google Gemini API từ Server Vercel
+    // 3. Đọc Body gửi lên
+    const bodyData = req.method !== 'GET' && req.method !== 'HEAD' ? (typeof req.body === 'string' ? req.body : JSON.stringify(req.body)) : null;
+
+    // 4. Fetch sang Google API
     const response = await fetch(targetUrl, {
       method: req.method,
       headers: {
